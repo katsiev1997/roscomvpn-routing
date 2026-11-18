@@ -1,0 +1,167 @@
+# ============================================================
+# Шаблон для 3x-ui (Настройки подписки -> Clash / Mihomo)
+# Схема: ВСЁ НАПРЯМУЮ (DIRECT), через прокси только AI и соцсети.
+# Основан на шаблоне RoscomVPN; российские списки не нужны, т.к. они и так DIRECT.
+# Панель импортирует только proxy-groups, rule-providers и rules.
+# Выложите файл по постоянной HTTPS-ссылке и вставьте её в поле
+# «Глобальные правила маршрутизации» (или вставьте текст туда целиком).
+# ============================================================
+proxy-groups:
+  # Служебная группа: через неё скачиваются наборы правил
+  - name: ⚡️ Авто
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 150
+    include-all: true
+    hidden: true
+  # AI: БЕЗ DIRECT, чтобы при падении узла не светился реальный IP
+  - name: 🤖 AI
+    type: select
+    include-all: true
+    proxies:
+      - ⚡️ Авто
+  - name: 📺 Youtube
+    type: select
+    include-all: true
+    proxies:
+      - ⚡️ Авто
+  - name: 📱 Соцсети
+    type: select
+    include-all: true
+    proxies:
+      - ⚡️ Авто
+rule-providers:
+  private-domains:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/private.mrs
+    path: ./ruleset/geosite-private.mrs
+    proxy: ⚡️ Авто
+    interval: 2592000
+  private-ips:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip/release/mihomo/private.mrs
+    path: ./ruleset/geoip-private.mrs
+    proxy: ⚡️ Авто
+    interval: 2592000
+  category-ads:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/category-ads.mrs
+    path: ./ruleset/category-ads.mrs
+    proxy: ⚡️ Авто
+    interval: 86400
+  youtube:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/youtube.mrs
+    path: ./ruleset/youtube.mrs
+    proxy: ⚡️ Авто
+    interval: 86400
+  telegram:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geosite/release/mihomo/telegram.mrs
+    path: ./ruleset/telegram.mrs
+    proxy: ⚡️ Авто
+    interval: 86400
+  telegram-ips:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs
+    path: ./ruleset/telegram-ips.mrs
+    proxy: ⚡️ Авто
+    interval: 86400
+  discord:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/discord.mrs
+    path: ./ruleset/discord.mrs
+    proxy: ⚡️ Авто
+    interval: 86400
+  ai-proxy:
+    type: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/ma-wenqian/ai-proxy-rules/main/Clash/ai-proxy.yaml
+    path: ./ruleset/ai-proxy.yaml
+    proxy: ⚡️ Авто
+    interval: 86400
+
+rules:
+  # --- Системные / приватные адреса ---
+  - RULE-SET,private-ips,DIRECT,no-resolve
+  - AND,((NETWORK,UDP),(DST-PORT,443)),REJECT-DROP # QUIC: принудительно TCP
+  - RULE-SET,private-domains,DIRECT
+
+  # --- Блокировка рекламы ---
+  - RULE-SET,category-ads,REJECT-DROP
+
+  # --- AI (Claude, ChatGPT/OpenAI) ---
+  - RULE-SET,ai-proxy,🤖 AI
+  # Cursor, GitHub Copilot, Gemini
+  - DOMAIN-SUFFIX,cursor.sh,🤖 AI
+  - DOMAIN-SUFFIX,cursor.com,🤖 AI
+  - DOMAIN-SUFFIX,cursorapi.com,🤖 AI
+  - DOMAIN-SUFFIX,githubcopilot.com,🤖 AI
+  - DOMAIN,gemini.google.com,🤖 AI
+  - DOMAIN,aistudio.google.com,🤖 AI
+  - DOMAIN,generativelanguage.googleapis.com,🤖 AI
+
+  # --- YouTube ---
+  - RULE-SET,youtube,📺 Youtube
+
+  # --- Telegram, Discord ---
+  - RULE-SET,telegram-ips,📱 Соцсети,no-resolve
+  - RULE-SET,telegram,📱 Соцсети
+  - RULE-SET,discord,📱 Соцсети
+  - PROCESS-NAME-REGEX,(?i)discord,📱 Соцсети
+  - PROCESS-NAME-REGEX,(?i)vesktop,📱 Соцсети
+
+  # --- Остальные соцсети (TikTok, Instagram/Facebook/Meta, X, Reddit, LinkedIn) ---
+  - DOMAIN-SUFFIX,tiktok.com,📱 Соцсети
+  - DOMAIN-SUFFIX,tiktokv.com,📱 Соцсети
+  - DOMAIN-SUFFIX,tiktokcdn.com,📱 Соцсети
+  - DOMAIN-SUFFIX,tiktokcdn-us.com,📱 Соцсети
+  - DOMAIN-SUFFIX,byteoversea.com,📱 Соцсети
+  - DOMAIN-SUFFIX,ibytedtos.com,📱 Соцсети
+  - DOMAIN-SUFFIX,ibyteimg.com,📱 Соцсети
+  - DOMAIN-SUFFIX,muscdn.com,📱 Соцсети
+  - DOMAIN-SUFFIX,musical.ly,📱 Соцсети
+  - DOMAIN-SUFFIX,ttwstatic.com,📱 Соцсети
+  - DOMAIN-SUFFIX,tiktokw.us,📱 Соцсети
+  - DOMAIN-SUFFIX,instagram.com,📱 Соцсети
+  - DOMAIN-SUFFIX,cdninstagram.com,📱 Соцсети
+  - DOMAIN-SUFFIX,facebook.com,📱 Соцсети
+  - DOMAIN-SUFFIX,facebook.net,📱 Соцсети
+  - DOMAIN-SUFFIX,fbcdn.net,📱 Соцсети
+  - DOMAIN-SUFFIX,fb.com,📱 Соцсети
+  - DOMAIN-SUFFIX,fb.me,📱 Соцсети
+  - DOMAIN-SUFFIX,fbsbx.com,📱 Соцсети
+  - DOMAIN-SUFFIX,meta.com,📱 Соцсети
+  - DOMAIN-SUFFIX,threads.net,📱 Соцсети
+  - DOMAIN-SUFFIX,threads.com,📱 Соцсети
+  - DOMAIN-SUFFIX,whatsapp.com,📱 Соцсети
+  - DOMAIN-SUFFIX,whatsapp.net,📱 Соцсети
+  - DOMAIN-SUFFIX,twitter.com,📱 Соцсети
+  - DOMAIN-SUFFIX,x.com,📱 Соцсети
+  - DOMAIN-SUFFIX,twimg.com,📱 Соцсети
+  - DOMAIN-SUFFIX,t.co,📱 Соцсети
+  - DOMAIN-SUFFIX,reddit.com,📱 Соцсети
+  - DOMAIN-SUFFIX,redd.it,📱 Соцсети
+  - DOMAIN-SUFFIX,redditmedia.com,📱 Соцсети
+  - DOMAIN-SUFFIX,redditstatic.com,📱 Соцсети
+  - DOMAIN-SUFFIX,linkedin.com,📱 Соцсети
+  - DOMAIN-SUFFIX,licdn.com,📱 Соцсети
+
+  # --- Всё остальное напрямую ---
+  - MATCH,DIRECT
